@@ -15,7 +15,8 @@ import urllib.request
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.1.0'
+sys.path.insert(0, str(ROOT))
+from app_version import VERSION
 PYTHON_WINDOWS = '3.13.17'
 PYTHON_WINDOWS_SHA256 = '9e35319bffedab8b36ad44d8f377cb4f1733bcec257a0b6d04d94f01486ddb38'
 
@@ -84,7 +85,7 @@ def windows(build, folder):
     (runtime / 'python313._pth').write_text('python313.zip\n.\nsite-packages\n../app\nimport site\n')
     app = folder / 'app'
     app.mkdir()
-    for name in ['launcher.py','server.py','media.py','removable.py','runtime_control.py','linux_install.py']:
+    for name in ['app_version.py','launcher.py','server.py','media.py','removable.py','runtime_control.py','linux_install.py']:
         shutil.copy2(ROOT / name, app / name)
     shutil.copytree(ROOT/'static', app/'static')
     for name, flags, wait in [('Start ElemFrame.cmd','',False),('Start kiosk.cmd','--kiosk',False),

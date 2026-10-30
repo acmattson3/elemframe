@@ -30,12 +30,15 @@ jobs:
         run: chmod +x 'build/release check/ElemFrame/ElemFrame'
       - name: Run the extracted application and media decoders
         run: python scripts/smoke_portable.py "build/release check/ElemFrame"
+      - name: Check video controls in Microsoft Edge
+        if: runner.os == 'Windows'
+        run: python scripts/smoke_video_overlay.py --package "build/release check/ElemFrame" --screenshots build/video-overlay-check
       - name: Build Linux installer
         if: runner.os == 'Linux'
         run: python scripts/build_installer.py linux
       - name: Test Linux install, upgrade, and uninstall
         if: runner.os == 'Linux'
-        run: python scripts/smoke_installer.py linux dist/ElemFrame-0.1.0-linux-x86_64-setup.run
+        run: python scripts/smoke_installer.py linux dist/ElemFrame-0.1.1-linux-x86_64-setup.run
       - name: Prepare pinned Inno Setup compiler
         if: runner.os == 'Windows'
         shell: pwsh
@@ -52,7 +55,7 @@ jobs:
         run: python scripts/build_installer.py windows --iscc "${{ env.ELEMFRAME_ISCC }}"
       - name: Test Windows install, upgrade, and uninstall
         if: runner.os == 'Windows'
-        run: python scripts/smoke_installer.py windows dist/ElemFrame-0.1.0-windows-x86_64-setup.exe
+        run: python scripts/smoke_installer.py windows dist/ElemFrame-0.1.1-windows-x86_64-setup.exe
       - uses: actions/upload-artifact@v4
         with:
           name: ElemFrame-${{ matrix.target }}-x86_64

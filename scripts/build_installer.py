@@ -9,7 +9,8 @@ import sys
 import tarfile
 
 ROOT=Path(__file__).resolve().parents[1]
-VERSION='0.1.0'
+sys.path.insert(0, str(ROOT))
+from app_version import VERSION
 
 
 def checksum(path):

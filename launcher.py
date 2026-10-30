@@ -21,7 +21,7 @@ import webbrowser
 
 from runtime_control import stop_instance
 
-VERSION = '0.1.0'
+from app_version import VERSION
 
 
 def application_home():

@@ -8,3 +8,10 @@
 .item{user-select:none;-webkit-user-select:none}
 .back-row{display:flex;align-items:center;width:100%;background:transparent;border:0;border-bottom:1px solid #27353e;border-radius:0;text-align:left;color:#acd6e2;margin-bottom:7px;padding:12px}.back-row:disabled{color:#8496a0;opacity:.4}.item.drop-target{background:#315a49;border-color:#9cdbc4}#settingsStatus{font-size:13px;color:#e4bd89;margin:12px 0 0;min-height:1.3em}
 #dashboardCountdown{font-size:15px;color:#a7cbd6;margin:18px 0 0;font-variant-numeric:tabular-nums}
+
+/* Keep Windows video compositor surfaces below a separate interactive HUD. */
+#slideshow{isolation:isolate}
+#slideStage{z-index:0;pointer-events:none}
+.slide-media{pointer-events:none}
+#slideOverlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;pointer-events:none;transform:translate3d(0,0,0)}
+#slideOverlay #volumeControl,#slideOverlay #slideResume{pointer-events:auto}

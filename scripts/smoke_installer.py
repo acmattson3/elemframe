@@ -88,7 +88,9 @@ def main():
             print('PASS user-level install, shortcuts, startup opt-in, and kiosk preferences',flush=True)
             with socket.socket() as reservation:reservation.bind(('127.0.0.1',0));port=reservation.getsockname()[1]
             url=f'http://127.0.0.1:{port}'
-            process=subprocess.Popen([str(native),'--no-browser','--port',str(port)],env=env)
+            # GUI launchers must not inherit the test runner's redirected terminal pipes.
+            process=subprocess.Popen([str(native),'--no-browser','--port',str(port)],env=env,
+                                     stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             for _ in range(150):
                 if process.poll() is not None:raise RuntimeError('Installed application exited before startup')
                 try:health=get_json(url+'/api/health');break

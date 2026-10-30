@@ -15,6 +15,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from app_version import VERSION
 from removable import locations
 from media import EXTS, VIDEO_EXTS, display_name, playback_path, prepare_import, cached_copies, MediaError
 
@@ -74,7 +75,7 @@ def read_config():
 
 @app.get("/api/health")
 def health():
-    return {"app": "ElemFrame", "version": "0.1.0", "data_dir": str(DATA_ROOT)}
+    return {"app": "ElemFrame", "version": VERSION, "data_dir": str(DATA_ROOT)}
 
 
 @app.post("/api/shutdown")

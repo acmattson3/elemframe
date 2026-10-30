@@ -10,8 +10,8 @@ The application uses a Python FastAPI backend and a vanilla HTML/JavaScript inte
 
 Installers are built in `dist/` and bundle the same Python runtime and media decoders as the portable packages. A supported browser must already be installed. These are unsigned preview builds.
 
-- **Windows 10/11 x64:** run `ElemFrame-0.1.0-windows-x86_64-setup.exe`. The per-user wizard offers desktop shortcuts, **Start ElemFrame when I sign in**, fullscreen kiosk mode, and a separate media/settings directory. The default program directory is `%LOCALAPPDATA%/Programs/ElemFrame`; data defaults to `%LOCALAPPDATA%/ElemFrame`. Uninstall through Windows Apps settings or the Start menu entry.
-- **Linux x86_64:** run `chmod +x ElemFrame-0.1.0-linux-x86_64-setup.run`, then `./ElemFrame-0.1.0-linux-x86_64-setup.run`. The terminal installer asks about shortcuts, startup, and kiosk mode. It installs for the current user without `sudo`, defaults to `~/.local/lib/elemframe`, and keeps data in `$XDG_DATA_HOME/elemframe` (`~/.local/share/elemframe`). Uninstall through the menu entry or `~/.local/lib/elemframe/ElemFrame --uninstall-linux`.
+- **Windows 10/11 x64:** run `ElemFrame-0.1.1-windows-x86_64-setup.exe`. The per-user wizard offers desktop shortcuts, **Start ElemFrame when I sign in**, fullscreen kiosk mode, and a separate media/settings directory. The default program directory is `%LOCALAPPDATA%/Programs/ElemFrame`; data defaults to `%LOCALAPPDATA%/ElemFrame`. Uninstall through Windows Apps settings or the Start menu entry.
+- **Linux x86_64:** run `chmod +x ElemFrame-0.1.1-linux-x86_64-setup.run`, then `./ElemFrame-0.1.1-linux-x86_64-setup.run`. The terminal installer asks about shortcuts, startup, and kiosk mode. It installs for the current user without `sudo`, defaults to `~/.local/lib/elemframe`, and keeps data in `$XDG_DATA_HOME/elemframe` (`~/.local/share/elemframe`). Uninstall through the menu entry or `~/.local/lib/elemframe/ElemFrame --uninstall-linux`.
 
 Installation, upgrade, and uninstall have passed lifecycle checks on the Linux development host and Windows 11 x64. Physical USB/SD insertion, real sign-in startup, interactive kiosk behavior, and Windows 10 still need manual checks.
 
@@ -34,9 +34,9 @@ python scripts/build_installer.py windows --iscc "C:/path/to/ISCC.exe"
 Installer builders also accept `--package /path/to/extracted/ElemFrame` and `--output /path/to/output`. Outputs have adjacent SHA-256 checksums. Linux builds inherit the portable runtime's glibc compatibility limits.
 
 ```bash
-python scripts/smoke_installer.py linux dist/ElemFrame-0.1.0-linux-x86_64-setup.run
+python scripts/smoke_installer.py linux dist/ElemFrame-0.1.1-linux-x86_64-setup.run
 # On a Windows test account:
-python scripts/smoke_installer.py windows dist/ElemFrame-0.1.0-windows-x86_64-setup.exe
+python scripts/smoke_installer.py windows dist/ElemFrame-0.1.1-windows-x86_64-setup.exe
 ```
 
 The Linux test isolates HOME and XDG directories. The Windows test temporarily creates actual per-user shortcuts and uninstall registration, refuses an existing ElemFrame installation, and uninstalls afterward. Both verify installing, upgrading a running application, updating startup/kiosk selections, and uninstalling while preserving disposable media/settings. Run these tests on a test account, not over an installation you depend on.
@@ -54,7 +54,7 @@ The launcher binds only to localhost, prefers port 8000, falls back to 8081, and
 
 Windows drive discovery includes removable drives and USB-connected fixed disks, excluding the system drive, internal SATA disks, network shares, and optical drives. Linux uses mounted removable locations under `/media` and `/run/media`. Both refresh automatically.
 
-**Validation status:** the Linux package has passed extracted-package runtime, decoder, and Firefox checks on the development machine. The Windows ZIP has passed native Windows 11 x64 checks for the `.exe` launcher, bundled decoders (including a real Canon RAW image and AVCHD), Unicode filenames, settings, instance reuse, and shutdown. The packaged dashboard also rendered successfully in headless Microsoft Edge. Windows drive discovery ran successfully, with no removable device attached. Physical USB/SD insertion/removal, interactive fullscreen kiosk behavior, and Windows 10 remain untested. The cross-platform CI workflow is configured but has not yet been run for this repository.
+**Validation status:** the Linux package has passed extracted-package runtime, decoder, and Firefox checks on the development machine. The Windows ZIP has passed native Windows 11 x64 checks for the `.exe` launcher, bundled decoders (including a real Canon RAW image and AVCHD), Unicode filenames, settings, instance reuse, and shutdown. The packaged dashboard also rendered successfully in headless Microsoft Edge. Version 0.1.1 separates slideshow controls from video layers; Windows Edge checks cover filename visibility, mouse/touch volume interaction, automatic slider collapse, and video crossfades. Windows drive discovery ran successfully, with no removable device attached. Physical USB/SD insertion/removal, interactive fullscreen kiosk behavior, and Windows 10 remain untested. The cross-platform CI workflow is configured but has not yet been run for this repository.
 
 Portable ZIPs do not register startup or uninstall entries. Use an installer for those features. Automatic OS login and OS lockdown remain separate deployment steps.
 
@@ -73,6 +73,8 @@ After extracting a ZIP, validate it using:
 
 ```bash
 python scripts/smoke_portable.py /path/to/extracted/ElemFrame
+# Requires Microsoft Edge or Chromium; uses an isolated browser/data directory:
+python scripts/smoke_video_overlay.py --package /path/to/extracted/ElemFrame
 ```
 
 That check launches the **packaged runtime**, exercises settings, USB fixtures, TIFF import/playback, instance reuse, and authenticated shutdown. `.github/workflows/portable-packages.yml` builds and smoke-tests both targets on their native operating systems when manually triggered or on version tags. Windows USB detection still needs a physical-device check on Windows; API mocks do not substitute for that.
