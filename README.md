@@ -1,10 +1,14 @@
 # ElemFrame
 
-An entirely local, database-free touchscreen digital photo frame. A Python FastAPI backend handles restricted filesystem operations; a vanilla HTML/JS interface runs in a regular browser or an optional kiosk browser.
+ElemFrame turns a Windows or Linux computer into a touchscreen digital photo and video frame. Import and organize media from USB drives or camera cards, then enjoy a shuffled slideshow with adjustable timing, crossfades, and volume control. It runs entirely offline and prepares older camera formats for playback when needed while preserving the originals.
+
+[Repository](https://github.com/acmattson3/elemframe) · [MIT License](LICENSE)
+
+The application uses a Python FastAPI backend and a vanilla HTML/JavaScript interface, with regular-browser and kiosk launch modes.
 
 ## Portable ZIP packages (preview)
 
-Prebuilt ZIP files are created in `dist/`. Extract the entire ZIP to a writable folder before running it. They include Python, FFmpeg, and the image/RAW decoders; end users do not need pip or a Python installation. A supported web browser must already be installed.
+Build scripts create portable ZIP files in `dist/`. ZIP files and build artifacts are excluded from this source repository; cloning it does not download a prebuilt application. Extract the entire ZIP to a writable folder before running it. They include Python, FFmpeg, and the image/RAW decoders; end users do not need pip or a Python installation. A supported web browser must already be installed.
 
 - **Windows 10/11 x64:** double-click `ElemFrame.exe`. `Start kiosk.cmd` opens kiosk mode. `Stop ElemFrame.cmd` stops the server, and `Check package.cmd` runs decoder checks. The native launcher uses a bundled CPython runtime and Windows x64 wheels; a package assembled on Linux still needs a real Windows runtime check.
 - **Linux x86_64:** run `./ElemFrame`, or `./ElemFrame --kiosk`. Run `chmod +x ElemFrame` if the ZIP extraction tool did not preserve executable permissions. `./ElemFrame --stop` stops it; `./ElemFrame --self-test` checks the decoders. The ZIP built on this machine uses its glibc baseline; `build-manifest.json` records that baseline. The CI Linux build targets Ubuntu 22.04 for broader compatibility. It is not a universal binary for every Linux distribution.
@@ -14,6 +18,8 @@ The portable marker `portable.txt` keeps settings, media, playback copies, brows
 The launcher binds only to localhost, prefers port 8000, falls back to 8081, and waits for its server before opening a browser. It reuses an existing instance for the same data directory. `--no-browser` runs just the server. Closing the browser leaves the server running until stopped. Kiosk mode uses a dedicated browser profile. Windows supports Edge, Chrome, and Firefox; Linux supports Chromium/Chrome and Firefox. Browser fullscreen does not lock down the OS.
 
 Windows drive discovery includes removable drives and USB-connected fixed disks, excluding the system drive, internal SATA disks, network shares, and optical drives. Linux uses mounted removable locations under `/media` and `/run/media`. Both refresh automatically.
+
+**Validation status:** the Linux package has passed extracted-package runtime, decoder, and Firefox checks on the development machine. The Windows ZIP has passed archive and contents checks, and Windows drive discovery has API-mock coverage; native Windows launch, browser behavior, and physical USB/SD detection still need validation. The cross-platform CI workflow is configured but has not yet been run for this repository.
 
 Startup registration, automatic OS login, and an installer are deferred until the portable builds pass platform testing. No startup settings are changed by running these previews.
 
@@ -36,12 +42,20 @@ python scripts/smoke_portable.py /path/to/extracted/ElemFrame
 
 That check launches the **packaged runtime**, exercises settings, USB fixtures, TIFF import/playback, instance reuse, and authenticated shutdown. `.github/workflows/portable-packages.yml` builds and smoke-tests both targets on their native operating systems when manually triggered or on version tags. Windows USB detection still needs a physical-device check on Windows; API mocks do not substitute for that.
 
-## Quick start (Linux)
+## Run from source
 
-Install Python 3.10+ and ensure removable media auto-mounts (as most Linux desktop environments do).
+Use Python 3.13, the version used for development and package checks. Clone the repository first:
 
 ```bash
-cd ElemFrame
+git clone https://github.com/acmattson3/elemframe.git
+cd elemframe
+```
+
+### Linux
+
+Ensure removable media auto-mounts, as it does in most Linux desktop environments.
+
+```bash
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
@@ -50,7 +64,17 @@ sudo apt install ffmpeg
 python server.py
 ```
 
-Open **http://127.0.0.1:8000** in a browser. To run fullscreen with Chromium installed:
+### Windows (PowerShell)
+
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe server.py
+```
+
+The source setup includes a bundled FFmpeg fallback; a compatible system FFmpeg can also be used. Windows runtime validation remains outstanding as noted above.
+
+Open **http://127.0.0.1:8000** in a browser. For a source checkout, `python launcher.py --kiosk` starts the server and a dedicated kiosk browser together. To run fullscreen manually on Linux with Chromium installed:
 
 ```bash
 chromium --kiosk --no-first-run http://127.0.0.1:8000
@@ -58,7 +82,7 @@ chromium --kiosk --no-first-run http://127.0.0.1:8000
 
 `library/` is created automatically and contains all imported files. You can override it using `PICTURE_LIBRARY=/path/to/library`. On Windows, removable and USB-connected fixed drives are discovered using Windows storage APIs. By default, Linux removable media mounted under `/media` and `/run/media` is detected. `PICTURE_REMOVABLE_ROOTS=/path/to/test-usb` treats a specified folder as an inserted drive for testing. This is intended for development, not production.
 
-## MVP behavior
+## Features
 
 - Dashboard: **Manage media**, **Play slideshow**, **Shuffle slideshow** toggle. A visible 30-second countdown starts on each dashboard visit and then starts the slideshow. Manage media cancels this countdown and never starts the slideshow automatically.
 - Two independent folder browsers, USB/SD left, local storage right. Drives are detected automatically; unplugging an open drive returns to the drive list.
@@ -75,7 +99,7 @@ chromium --kiosk --no-first-run http://127.0.0.1:8000
 
 ## Settings
 
-For source runs, `config.json` in the project directory stores `display_time`, `transition_time`, `shuffle`, and `volume`. UI changes save automatically and survive page reloads and server restarts. The server creates defaults when the file is missing and saves changes using an atomic file replacement. Portable launcher runs use `data/config.json` instead. You can also edit the file directly; reload the page to apply it. `ELEMFRAME_CONFIG=/path/to/config.json` overrides the location.
+For `python server.py` runs, `config.json` in the project directory stores `display_time`, `transition_time`, `shuffle`, and `volume`. UI changes save automatically and survive page reloads and server restarts. The server creates defaults when the file is missing and saves changes using an atomic file replacement. Portable launcher runs use `data/config.json` instead. You can also edit the file directly; reload the page to apply it. `ELEMFRAME_CONFIG=/path/to/config.json` overrides the location.
 
 ## Security and limitations
 
@@ -87,9 +111,15 @@ If you want fully offline operation, install dependencies once, then disconnect 
 
 ## Repository configuration
 
-`config.example.json` contains default settings. Local `config.json`, imported media,
-application data, credentials, virtual environments, and generated packages are
-excluded from Git. The application creates `config.json` automatically if absent.
+[`config.example.json`](config.example.json) contains safe default settings. The application creates a local `config.json` automatically if absent; do not commit your personal configuration.
+
+The [`.gitignore`](.gitignore) excludes:
+
+- Local settings, media, playback caches, and portable application data (`config.json`, `library/`, `data/`).
+- Credentials and local tool configuration (`.aws/`, `.codex/`, `.agents/`, `.ssh/`, `.gnupg/`, `.env` files, and private-key files).
+- Virtual environments, generated packages, build output, runtime state, logs, and editor configuration.
+
+These exclusions keep local files out of Git without deleting them. Only sanitized examples should be committed when configuration templates are needed. The `config.example.json` template is tracked; `.env.example` is also allowed if one is added later.
 
 ## License
 
