@@ -1,0 +1,35 @@
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+library/
+data/
+config.json
+*.spec
+
+# Local credentials and agent/tool configuration
+.aws/
+.codex/
+.agents/
+.ssh/
+.gnupg/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+
+# Local runtime state, logs, and editor files
+.runtime.json
+.browser.json
+.instance.lock
+*.log
+logs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

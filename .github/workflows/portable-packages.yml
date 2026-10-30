@@ -1,0 +1,38 @@
+name: Portable packages
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+jobs:
+  portable:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: linux
+          - os: windows-latest
+            target: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python -m pip install -r requirements-build.txt
+      - run: python -m unittest discover -s tests -v
+      - run: python scripts/build_portable.py ${{ matrix.target }}
+      - name: Extract the release to a path containing spaces
+        run: python -c "import pathlib,zipfile; p=next(pathlib.Path('dist').glob('*.zip')); zipfile.ZipFile(p).extractall('build/release check')"
+      - if: runner.os == 'Linux'
+        run: chmod +x 'build/release check/ElemFrame/ElemFrame'
+      - name: Run the extracted application and media decoders
+        run: python scripts/smoke_portable.py "build/release check/ElemFrame"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ElemFrame-${{ matrix.target }}-x86_64
+          path: |
+            dist/*.zip
+            dist/*.sha256
