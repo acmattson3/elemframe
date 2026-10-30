@@ -19,6 +19,8 @@ import time
 import urllib.request
 import webbrowser
 
+from runtime_control import stop_instance
+
 VERSION = '0.1.0'
 
 
@@ -28,9 +30,16 @@ def application_home():
     return Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
 
 
+def launch_settings():
+    path = application_home() / 'launch.json'
+    return json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else {}
+
+
 def data_directory(args):
     if args.data_dir:
         return Path(args.data_dir).expanduser().resolve()
+    if launch_settings().get('data_dir'):
+        return Path(launch_settings()['data_dir']).expanduser().resolve()
     if args.portable or (application_home() / 'portable.txt').exists():
         return application_home() / 'data'
     if sys.platform == 'win32':
@@ -123,6 +132,30 @@ def open_browser(url, data, kiosk):
     return None
 
 
+def native_parent_pid():
+    if sys.platform != 'win32':
+        return None
+    from ctypes import wintypes
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    kernel.OpenProcess.restype = wintypes.HANDLE
+    kernel.QueryFullProcessImageNameW.argtypes = [wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    parent = os.getppid()
+    handle = kernel.OpenProcess(0x1000, False, parent)
+    if not handle:
+        return None
+    try:
+        buffer = ctypes.create_unicode_buffer(32768)
+        length = wintypes.DWORD(len(buffer))
+        if kernel.QueryFullProcessImageNameW(handle, 0, buffer, ctypes.byref(length)):
+            if Path(buffer.value).resolve() == (application_home() / 'ElemFrame.exe').resolve():
+                return parent
+    finally:
+        kernel.CloseHandle(handle)
+    return None
+
+
 def show_error(message):
     logging.error(message)
     if sys.platform == 'win32':
@@ -153,8 +186,13 @@ def self_test():
 
 
 def main():
+    if '--install-linux' in sys.argv or '--uninstall-linux' in sys.argv:
+        if sys.platform != 'linux':
+            raise RuntimeError('Use Windows Apps settings to install or uninstall ElemFrame on Windows.')
+        from linux_install import main as install_main
+        return install_main(application_home(), sys.argv[1:])
     parser = argparse.ArgumentParser(description='Start ElemFrame and open its local interface.')
-    parser.add_argument('--kiosk', action='store_true', help='Open a dedicated fullscreen browser')
+    parser.add_argument('--kiosk', action=argparse.BooleanOptionalAction, default=None, help='Open a dedicated fullscreen browser')
     parser.add_argument('--no-browser', action='store_true', help='Run just the local server')
     parser.add_argument('--portable', action='store_true', help='Store settings/media beside the application')
     parser.add_argument('--data-dir', help='Override the writable data directory')
@@ -163,6 +201,8 @@ def main():
     parser.add_argument('--self-test', action='store_true', help='Check bundled decoders without modifying user data')
     parser.add_argument('--version', action='version', version=f'ElemFrame {VERSION}')
     args = parser.parse_args()
+    if args.kiosk is None:
+        args.kiosk = bool(launch_settings().get('kiosk', False))
     if args.self_test:
         self_test()
         return 0
@@ -174,8 +214,7 @@ def main():
     logging.basicConfig(level=logging.INFO, handlers=[handler], format='%(asctime)s %(levelname)s %(message)s')
     state_path = data / '.runtime.json'
     if args.stop:
-        state = json.loads(state_path.read_text())
-        request(state['url'] + '/api/shutdown', state['token'])
+        stop_instance(data)
         return 0
     lock = InstanceLock(data)
     if not lock.acquire():
@@ -221,7 +260,7 @@ def main():
         server.app.state.launcher_token = token
         server.app.state.shutdown = lambda: setattr(app_server, 'should_exit', True)
         url = f'http://127.0.0.1:{sock.getsockname()[1]}'
-        state_path.write_text(json.dumps({'url': url, 'token': token, 'pid': os.getpid()}))
+        state_path.write_text(json.dumps({'url': url, 'token': token, 'pid': os.getpid(), 'launcher_pid': native_parent_pid()}))
         if os.name != 'nt':
             state_path.chmod(0o600)
         def launch_when_ready():
@@ -258,5 +297,8 @@ if __name__ == '__main__':
         raise SystemExit(main())
     except Exception as error:
         logging.exception('ElemFrame failed')
-        show_error(f'ElemFrame could not start: {error}')
+        if any(flag in sys.argv for flag in ['--self-test', '--no-browser', '--stop', '--install-linux', '--uninstall-linux']):
+            print(f'ElemFrame: {error}', file=sys.stderr)
+        else:
+            show_error(f'ElemFrame could not start: {error}')
         raise SystemExit(1)

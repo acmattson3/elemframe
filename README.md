@@ -6,6 +6,41 @@ ElemFrame turns a Windows or Linux computer into a touchscreen digital photo and
 
 The application uses a Python FastAPI backend and a vanilla HTML/JavaScript interface, with regular-browser and kiosk launch modes.
 
+## Installers (preview)
+
+Installers are built in `dist/` and bundle the same Python runtime and media decoders as the portable packages. A supported browser must already be installed. These are unsigned preview builds.
+
+- **Windows 10/11 x64:** run `ElemFrame-0.1.0-windows-x86_64-setup.exe`. The per-user wizard offers desktop shortcuts, **Start ElemFrame when I sign in**, fullscreen kiosk mode, and a separate media/settings directory. The default program directory is `%LOCALAPPDATA%/Programs/ElemFrame`; data defaults to `%LOCALAPPDATA%/ElemFrame`. Uninstall through Windows Apps settings or the Start menu entry.
+- **Linux x86_64:** run `chmod +x ElemFrame-0.1.0-linux-x86_64-setup.run`, then `./ElemFrame-0.1.0-linux-x86_64-setup.run`. The terminal installer asks about shortcuts, startup, and kiosk mode. It installs for the current user without `sudo`, defaults to `~/.local/lib/elemframe`, and keeps data in `$XDG_DATA_HOME/elemframe` (`~/.local/share/elemframe`). Uninstall through the menu entry or `~/.local/lib/elemframe/ElemFrame --uninstall-linux`.
+
+Installation, upgrade, and uninstall have passed lifecycle checks on the Linux development host and Windows 11 x64. Physical USB/SD insertion, real sign-in startup, interactive kiosk behavior, and Windows 10 still need manual checks.
+
+Both installers preserve media and settings during upgrades and uninstall. Startup is **off unless selected** and runs at user sign-in; automatic OS sign-in is a separate operating-system setting. Neither installer changes OS login credentials or locks down the desktop. Closing a browser leaves the local server running; the Stop shortcut or `--stop` shuts it down gracefully.
+
+Linux unattended installation supports `--yes`, `--startup`/`--no-startup`, `--kiosk`/`--no-kiosk`, `--desktop`/`--no-desktop`, `--install-dir`, and `--data-dir`. Rerunning the installer upgrades the application and updates its shortcuts. Without explicit switches it retains the previous selections.
+
+Windows unattended installation supports Inno Setup's standard `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`, plus `/DIR=...`, `/DATADIR=...`, and `/TASKS=desktopicon,startup,kiosk`. `/TASKS=` deselects optional tasks. Choosing a different data directory does not migrate files from the old location; the old data stays intact.
+
+### Build and test installers
+
+Build the corresponding portable package first, then run:
+
+```bash
+python scripts/build_installer.py linux
+# On Windows with Inno Setup 6/7 installed:
+python scripts/build_installer.py windows --iscc "C:/path/to/ISCC.exe"
+```
+
+Installer builders also accept `--package /path/to/extracted/ElemFrame` and `--output /path/to/output`. Outputs have adjacent SHA-256 checksums. Linux builds inherit the portable runtime's glibc compatibility limits.
+
+```bash
+python scripts/smoke_installer.py linux dist/ElemFrame-0.1.0-linux-x86_64-setup.run
+# On a Windows test account:
+python scripts/smoke_installer.py windows dist/ElemFrame-0.1.0-windows-x86_64-setup.exe
+```
+
+The Linux test isolates HOME and XDG directories. The Windows test temporarily creates actual per-user shortcuts and uninstall registration, refuses an existing ElemFrame installation, and uninstalls afterward. Both verify installing, upgrading a running application, updating startup/kiosk selections, and uninstalling while preserving disposable media/settings. Run these tests on a test account, not over an installation you depend on.
+
 ## Portable ZIP packages (preview)
 
 Build scripts create portable ZIP files in `dist/`. ZIP files and build artifacts are excluded from this source repository; cloning it does not download a prebuilt application. Extract the entire ZIP to a writable folder before running it. They include Python, FFmpeg, and the image/RAW decoders; end users do not need pip or a Python installation. A supported web browser must already be installed.
@@ -15,13 +50,13 @@ Build scripts create portable ZIP files in `dist/`. ZIP files and build artifact
 
 The portable marker `portable.txt` keeps settings, media, playback copies, browser profile, and logs under **`data/` beside the launcher**. No personal media/settings from this checkout are shipped. Preserve `data/` during upgrades. `--data-dir /path/to/data` overrides the location. Without the marker (or `--portable`), the launcher defaults to `%LOCALAPPDATA%/ElemFrame` on Windows or `$XDG_DATA_HOME/elemframe` (`~/.local/share/elemframe`) on Linux.
 
-The launcher binds only to localhost, prefers port 8000, falls back to 8081, and waits for its server before opening a browser. It reuses an existing instance for the same data directory. `--no-browser` runs just the server. Closing the browser leaves the server running until stopped. Kiosk mode uses a dedicated browser profile. Windows supports Edge, Chrome, and Firefox; Linux supports Chromium/Chrome and Firefox. Browser fullscreen does not lock down the OS.
+The launcher binds only to localhost, prefers port 8000, falls back to 8081, and waits for its server before opening a browser. It reuses an existing instance for the same data directory. `--no-browser` runs just the server. Installed kiosk preferences are saved in `launch.json`; `--kiosk` or `--no-kiosk` overrides them for an individual launch. Closing the browser leaves the server running until stopped. Kiosk mode uses a dedicated browser profile. Windows supports Edge, Chrome, and Firefox; Linux supports Chromium/Chrome and Firefox. Browser fullscreen does not lock down the OS.
 
 Windows drive discovery includes removable drives and USB-connected fixed disks, excluding the system drive, internal SATA disks, network shares, and optical drives. Linux uses mounted removable locations under `/media` and `/run/media`. Both refresh automatically.
 
 **Validation status:** the Linux package has passed extracted-package runtime, decoder, and Firefox checks on the development machine. The Windows ZIP has passed native Windows 11 x64 checks for the `.exe` launcher, bundled decoders (including a real Canon RAW image and AVCHD), Unicode filenames, settings, instance reuse, and shutdown. The packaged dashboard also rendered successfully in headless Microsoft Edge. Windows drive discovery ran successfully, with no removable device attached. Physical USB/SD insertion/removal, interactive fullscreen kiosk behavior, and Windows 10 remain untested. The cross-platform CI workflow is configured but has not yet been run for this repository.
 
-Startup registration, automatic OS login, and an installer are deferred until the portable builds pass platform testing. No startup settings are changed by running these previews.
+Portable ZIPs do not register startup or uninstall entries. Use an installer for those features. Automatic OS login and OS lockdown remain separate deployment steps.
 
 ### Building and validating packages
 

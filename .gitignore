@@ -33,3 +33,5 @@ logs/
 .idea/
 .DS_Store
 Thumbs.db
+launch.json
+install-state.json

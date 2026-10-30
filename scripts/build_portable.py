@@ -42,7 +42,8 @@ The launcher uses localhost:8000, or 8081 if 8000 is occupied. It does not use 8
 A second launch reuses the existing server for that data directory.
 Closing the browser leaves the server available. Stop with ./ElemFrame --stop
 or "Stop ElemFrame.cmd". Kiosk mode is browser fullscreen, not OS lockdown.
-Startup registration and an installer are intentionally deferred to the installer phase.
+Portable ZIPs do not register startup. Use the separate installer for shortcuts,
+optional sign-in startup, and managed uninstall. Automatic OS login is separate.
 
 Diagnostic checks: ./ElemFrame --self-test (Linux), "Check package.cmd" (Windows).
 Windows preview needs a Windows 10/11 x64 runtime check; assembling on Linux
@@ -83,7 +84,7 @@ def windows(build, folder):
     (runtime / 'python313._pth').write_text('python313.zip\n.\nsite-packages\n../app\nimport site\n')
     app = folder / 'app'
     app.mkdir()
-    for name in ['launcher.py','server.py','media.py','removable.py']:
+    for name in ['launcher.py','server.py','media.py','removable.py','runtime_control.py','linux_install.py']:
         shutil.copy2(ROOT / name, app / name)
     shutil.copytree(ROOT/'static', app/'static')
     for name, flags, wait in [('Start ElemFrame.cmd','',False),('Start kiosk.cmd','--kiosk',False),
