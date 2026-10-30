@@ -10,7 +10,7 @@ The application uses a Python FastAPI backend and a vanilla HTML/JavaScript inte
 
 Build scripts create portable ZIP files in `dist/`. ZIP files and build artifacts are excluded from this source repository; cloning it does not download a prebuilt application. Extract the entire ZIP to a writable folder before running it. They include Python, FFmpeg, and the image/RAW decoders; end users do not need pip or a Python installation. A supported web browser must already be installed.
 
-- **Windows 10/11 x64:** double-click `ElemFrame.exe`. `Start kiosk.cmd` opens kiosk mode. `Stop ElemFrame.cmd` stops the server, and `Check package.cmd` runs decoder checks. The native launcher uses a bundled CPython runtime and Windows x64 wheels; a package assembled on Linux still needs a real Windows runtime check.
+- **Windows 10/11 x64:** double-click `ElemFrame.exe`. `Start kiosk.cmd` opens kiosk mode. `Stop ElemFrame.cmd` stops the server, and `Check package.cmd` runs decoder checks. The native launcher uses a bundled CPython runtime and Windows x64 wheels. The extracted package has passed native Windows 11 x64 checks; run `Check package.cmd` on your target device before deployment.
 - **Linux x86_64:** run `./ElemFrame`, or `./ElemFrame --kiosk`. Run `chmod +x ElemFrame` if the ZIP extraction tool did not preserve executable permissions. `./ElemFrame --stop` stops it; `./ElemFrame --self-test` checks the decoders. The ZIP built on this machine uses its glibc baseline; `build-manifest.json` records that baseline. The CI Linux build targets Ubuntu 22.04 for broader compatibility. It is not a universal binary for every Linux distribution.
 
 The portable marker `portable.txt` keeps settings, media, playback copies, browser profile, and logs under **`data/` beside the launcher**. No personal media/settings from this checkout are shipped. Preserve `data/` during upgrades. `--data-dir /path/to/data` overrides the location. Without the marker (or `--portable`), the launcher defaults to `%LOCALAPPDATA%/ElemFrame` on Windows or `$XDG_DATA_HOME/elemframe` (`~/.local/share/elemframe`) on Linux.
@@ -19,7 +19,7 @@ The launcher binds only to localhost, prefers port 8000, falls back to 8081, and
 
 Windows drive discovery includes removable drives and USB-connected fixed disks, excluding the system drive, internal SATA disks, network shares, and optical drives. Linux uses mounted removable locations under `/media` and `/run/media`. Both refresh automatically.
 
-**Validation status:** the Linux package has passed extracted-package runtime, decoder, and Firefox checks on the development machine. The Windows ZIP has passed archive and contents checks, and Windows drive discovery has API-mock coverage; native Windows launch, browser behavior, and physical USB/SD detection still need validation. The cross-platform CI workflow is configured but has not yet been run for this repository.
+**Validation status:** the Linux package has passed extracted-package runtime, decoder, and Firefox checks on the development machine. The Windows ZIP has passed native Windows 11 x64 checks for the `.exe` launcher, bundled decoders (including a real Canon RAW image and AVCHD), Unicode filenames, settings, instance reuse, and shutdown. The packaged dashboard also rendered successfully in headless Microsoft Edge. Windows drive discovery ran successfully, with no removable device attached. Physical USB/SD insertion/removal, interactive fullscreen kiosk behavior, and Windows 10 remain untested. The cross-platform CI workflow is configured but has not yet been run for this repository.
 
 Startup registration, automatic OS login, and an installer are deferred until the portable builds pass platform testing. No startup settings are changed by running these previews.
 
@@ -72,7 +72,7 @@ py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe server.py
 ```
 
-The source setup includes a bundled FFmpeg fallback; a compatible system FFmpeg can also be used. Windows runtime validation remains outstanding as noted above.
+The source setup includes a bundled FFmpeg fallback; a compatible system FFmpeg can also be used. See the portable validation status above for tested Windows behavior and the remaining device/kiosk checks.
 
 Open **http://127.0.0.1:8000** in a browser. For a source checkout, `python launcher.py --kiosk` starts the server and a dedicated kiosk browser together. To run fullscreen manually on Linux with Chromium installed:
 
